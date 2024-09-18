@@ -1,0 +1,40 @@
+// This is your Prisma schema file,
+// learn more about it in the docs: https://pris.ly/d/prisma-schema
+
+// Looking for ways to speed up your queries, or scale easily with your serverless or edge functions?
+// Try Prisma Accelerate: https://pris.ly/cli/accelerate-init
+
+generator client {
+  provider = "prisma-client-js"
+}
+
+datasource db {
+  provider = "postgresql"
+  url      = env("DATABASE_URL")
+}
+
+model User {
+  id        String   @id @default(uuid())
+  username  String   @unique
+  password  String
+  email     String   @unique
+  createdAt DateTime @default(now()) @map("created_at")
+  updatedAt DateTime @updatedAt @map("updated_at")
+}
+
+model License {
+  id               String    @id @default(uuid())
+  key              String    @unique
+  email            String    @default("")
+  status           String    @default("inactive")
+  maxDevices       Int       @default(1) @map("max_devices")
+  activatedDevices Int       @default(0) @map("activated_devices")
+  expiresAt        DateTime? @map("expires_at")
+  createdAt        DateTime  @default(now()) @map("created_at")
+  macIds           String[]  @default([]) @map("mac_ids")
+  updatedAt        DateTime  @updatedAt @map("updated_at")
+  lastActiveAt     DateTime? @map("last_active_at")
+  nowActiveDevices Int       @default(0) @map("now_active_devices")
+
+  @@index([email])
+}
