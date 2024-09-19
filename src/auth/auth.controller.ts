@@ -1,4 +1,4 @@
-import { Controller, Post, Body, UseGuards } from '@nestjs/common';
+import { Controller, Post, Body, UseGuards, Headers } from '@nestjs/common';
 import { AuthService } from './auth.service';
 import { LoginInput } from './dto/login.input';
 import { SignupInput } from './dto/signup.input';
@@ -40,7 +40,7 @@ export class AuthController {
 
   @UseGuards(JWTAuthGuard)
   @Post('user')
-  async getUser(@Body('token') token: string) {
-    return await this.authService.getUserFromToken(token);
+  async getUser(@Headers('Authorization') headers: string) {
+    return await this.authService.getUserFromToken(headers?.split(' ')?.[1]);
   }
 }

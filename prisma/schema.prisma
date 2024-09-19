@@ -26,15 +26,14 @@ model License {
   id               String    @id @default(uuid())
   key              String    @unique
   email            String    @default("")
-  status           String    @default("inactive")
+  status           String    @default("INACTIVE")
   maxDevices       Int       @default(1) @map("max_devices")
   activatedDevices Int       @default(0) @map("activated_devices")
-  expiresAt        DateTime? @map("expires_at")
-  createdAt        DateTime  @default(now()) @map("created_at")
+  expiresAt        DateTime? @map("expires_at") @db.Timestamp(3)
+  createdAt        DateTime  @default(now()) @map("created_at") @db.Timestamp(3)
   macIds           String[]  @default([]) @map("mac_ids")
-  updatedAt        DateTime  @updatedAt @map("updated_at")
-  lastActiveAt     DateTime? @map("last_active_at")
-  nowActiveDevices Int       @default(0) @map("now_active_devices")
+  updatedAt        DateTime  @updatedAt @map("updated_at") @db.Timestamp(3)
+  lastActiveAt     DateTime? @map("last_active_at") @db.Timestamp(3)
 
   @@index([email])
 }

@@ -6,10 +6,12 @@ import {
   Param,
   UseGuards,
   Query,
+  Put,
+  Delete,
 } from '@nestjs/common';
 import { LicenseService } from './license.service';
 import { AuthGuard } from '@nestjs/passport'; // 假设你使用 Passport 进行身份验证
-import { License } from './models/license.model';
+import { License, LicenseQuery, UpdateLicense } from './models/license.model';
 
 @Controller('license')
 export class LicenseController {
@@ -23,13 +25,12 @@ export class LicenseController {
 
   // 生成许可证
   @UseGuards(AuthGuard('jwt'))
-  @Post('generate')
+  @Post('')
   async generate(@Body() generateData: any) {
     return this.licenseService.generate(generateData);
   }
 
   // 激活许可证
-  @UseGuards(AuthGuard('jwt'))
   @Post('activate')
   async activate(@Body() activateData: License) {
     return this.licenseService.activate(activateData);
@@ -42,22 +43,30 @@ export class LicenseController {
     return this.licenseService.deactivate(deactivateData);
   }
 
-  // 通过邮箱检索许可证
-  @UseGuards(AuthGuard('jwt'))
-  @Post('retrieve')
-  async retrieveByEmail(@Query('email') email: string) {
-    return this.licenseService.retrieveByEmail(email);
-  }
-
   @Get()
   @UseGuards(AuthGuard('jwt'))
-  async getAllLicenses() {
-    return this.licenseService.getAllLicenses();
+  async getAllLicenses(@Query() query: LicenseQuery) {
+    return this.licenseService.getAllLicenses(query);
   }
 
   @Get(':id')
   @UseGuards(AuthGuard('jwt'))
   async getLicense(@Param('id') id: string) {
     return this.licenseService.getLicense(id);
+  }
+  @Put(':id')
+  @UseGuards(AuthGuard('jwt'))
+  async updateLicense(
+    @Param('id') id: string,
+    @Body() updateData: UpdateLicense,
+  ) {
+    return this.licenseService.updateLicense(id, updateData);
+  }
+
+  // 删除许可证
+  @Delete(':id')
+  @UseGuards(AuthGuard('jwt'))
+  async deleteLicense(@Param('id') id: string) {
+    return this.licenseService.deleteLicense(id);
   }
 }

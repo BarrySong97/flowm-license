@@ -5,6 +5,7 @@ import { AuthGuard } from '@nestjs/passport';
 export class JWTAuthGuard extends AuthGuard('jwt') {
   getRequest(context: ExecutionContext) {
     // RESTful request
-    return context.switchToHttp().getRequest();
+    const request = context.switchToHttp().getRequest();
+    return request;
   }
 }

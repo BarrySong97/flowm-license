@@ -11,6 +11,7 @@ import { PasswordService } from './password.service';
 import { SignupInput } from './dto/signup.input';
 import { Token } from './models/token.model';
 import { Prisma, User } from '@prisma/client';
+import { log } from 'console';
 
 @Injectable()
 export class AuthService {
@@ -68,13 +69,23 @@ export class AuthService {
     });
   }
 
-  validateUser(userId: string): Promise<User> {
-    return this.prisma.user.findUnique({ where: { id: userId } });
+  async validateUser(userId: string): Promise<User> {
+    const user = await this.prisma.user.findUnique({ where: { id: userId } });
+    if (!user) {
+      throw new UnauthorizedException();
+    }
+    delete user.password;
+    return user;
   }
 
-  getUserFromToken(token: string): Promise<User> {
+  async getUserFromToken(token: string): Promise<User> {
     const id = this.jwtService.decode(token)['userId'];
-    return this.prisma.user.findUnique({ where: { id } });
+    if (!id) {
+      throw new UnauthorizedException();
+    }
+    const user = await this.prisma.user.findUnique({ where: { id } });
+    delete user.password;
+    return user;
   }
 
   generateTokens(payload: { userId: string }): Token {
@@ -105,7 +116,6 @@ export class AuthService {
         userId,
       });
     } catch (e) {
-      console.log(e);
       throw new UnauthorizedException();
     }
   }

@@ -1,6 +1,11 @@
 import { Injectable } from '@nestjs/common';
 import { LicenseDao } from './license.dao';
-import { GenerateLicense, License } from './models/license.model';
+import {
+  GenerateLicense,
+  License,
+  LicenseQuery,
+  UpdateLicense,
+} from './models/license.model';
 
 @Injectable()
 export class LicenseService {
@@ -35,11 +40,21 @@ export class LicenseService {
     return this.licenseDao.retrieveByEmail(email);
   }
 
-  async getAllLicenses() {
-    return this.licenseDao.getAllLicenses();
+  async getAllLicenses(query: LicenseQuery) {
+    return this.licenseDao.getAllLicenses(query);
   }
 
   async getLicense(id: string) {
     return this.licenseDao.getLicense(id);
+  }
+
+  // 更新许可证
+  async updateLicense(id: string, updateData: UpdateLicense) {
+    return this.licenseDao.updateLicense(id, updateData);
+  }
+
+  // 删除许可证
+  async deleteLicense(id: string) {
+    return this.licenseDao.deleteLicense(id);
   }
 }
