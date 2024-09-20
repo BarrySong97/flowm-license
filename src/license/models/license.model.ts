@@ -1,5 +1,5 @@
 import {
-  IsDate,
+  IsEmail,
   IsNotEmpty,
   IsNumber,
   IsOptional,
@@ -15,6 +15,10 @@ export class License {
   @IsNotEmpty()
   @IsString()
   macId: string;
+
+  @IsNotEmpty()
+  @IsEmail()
+  email: string;
 }
 export class UpdateLicense {
   @IsOptional()

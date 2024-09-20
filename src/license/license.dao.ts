@@ -1,4 +1,10 @@
-import { Injectable } from '@nestjs/common';
+import {
+  BadRequestException,
+  ForbiddenException,
+  Injectable,
+  NotFoundException,
+  UnauthorizedException,
+} from '@nestjs/common';
 import { PrismaService } from 'nestjs-prisma';
 import { License } from '@prisma/client';
 import {
@@ -19,17 +25,16 @@ export class LicenseDao {
     });
 
     if (!license) {
-      return null;
+      throw new NotFoundException('License not found');
+    }
+    if (license.status === 'DISABLED') {
+      throw new UnauthorizedException('License disabled');
     }
 
     // 检查是否过期
-    if (license.expiresAt && license.expiresAt < new Date()) {
+    if (license.expiresAt && dayjs(license.expiresAt).isBefore(dayjs())) {
       // 如果许可证已过期，更新状态为 'EXPIRED'
-      await this.prisma.license.update({
-        where: { id: license.id },
-        data: { status: 'EXPIRED' },
-      });
-      return { ...license, status: 'EXPIRED' };
+      throw new ForbiddenException('License expired');
     }
 
     return license;
@@ -60,29 +65,44 @@ export class LicenseDao {
     return result.match(/.{1,4}/g).join('-');
   }
 
-  async activate(licenseKey: string, macId: string): Promise<License> {
+  async activate(
+    licenseKey: string,
+    macId: string,
+    email: string,
+  ): Promise<License> {
     // 首先获取当前许可证信息
     const currentLicense = await this.prisma.license.findUnique({
-      where: { key: licenseKey },
+      where: { key: licenseKey, email },
     });
+
+    if (!currentLicense) {
+      throw new NotFoundException('License not found');
+    }
     // 检查是否过期
-    if (currentLicense.expiresAt && currentLicense.expiresAt < new Date()) {
+    if (
+      currentLicense.expiresAt &&
+      dayjs(currentLicense.expiresAt).isBefore(dayjs())
+    ) {
       // 如果许可证已过期，更新状态为 'EXPIRED'
-      return this.prisma.license.update({
-        where: { id: currentLicense.id },
-        data: { status: 'EXPIRED' },
-      });
+      throw new ForbiddenException('License expired');
     }
 
     // 检查 macId 是否已存在
     const canActivate =
       currentLicense &&
       !currentLicense.macIds.includes(macId) &&
-      currentLicense.status !== 'ACTIVE' &&
       currentLicense.activatedDevices < currentLicense.maxDevices;
+    if (currentLicense.macIds.includes(macId)) {
+      return currentLicense;
+    }
+
+    if (currentLicense.activatedDevices >= currentLicense.maxDevices) {
+      throw new BadRequestException(
+        'Maximum number of devices reached for this license',
+      );
+    }
 
     if (canActivate) {
-      // macId 不存在、状态不是 active、且未超过最大设备数，执行激活操作
       return this.prisma.license.update({
         where: { key: licenseKey },
         data: {
@@ -91,26 +111,26 @@ export class LicenseDao {
           activatedDevices: { increment: 1 },
         },
       });
-    } else if (currentLicense.activatedDevices >= currentLicense.maxDevices) {
-      // 已达到或超过最大设备数
-      throw new Error('Maximum number of devices reached for this license');
-    } else {
-      // macId 已存在、状态已是 active 或其他情况，返回当前许可证状态，不进行激活
-      return currentLicense;
     }
+
+    return currentLicense;
   }
 
-  async deactivate(licenseKey: string, macId: string): Promise<License> {
+  async deactivate(
+    licenseKey: string,
+    macId: string,
+    email: string,
+  ): Promise<License> {
     const currentLicense = await this.prisma.license.findUnique({
-      where: { key: licenseKey },
+      where: { key: licenseKey, email },
     });
+    if (!currentLicense) {
+      throw new NotFoundException('License not found');
+    }
     // 检查是否过期
     if (currentLicense.expiresAt && currentLicense.expiresAt < new Date()) {
       // 如果许可证已过期，更新状态为 'EXPIRED'
-      return this.prisma.license.update({
-        where: { id: currentLicense.id },
-        data: { status: 'EXPIRED' },
-      });
+      throw new ForbiddenException('License expired');
     }
 
     if (
@@ -128,13 +148,8 @@ export class LicenseDao {
         },
       });
     } else {
+      return currentLicense;
     }
-  }
-
-  async retrieveByEmail(email: string): Promise<License | null> {
-    return this.prisma.license.findFirst({
-      where: { email },
-    });
   }
 
   async getAllLicenses(query: LicenseQuery): Promise<PageResponse<License>> {
@@ -179,12 +194,23 @@ export class LicenseDao {
   }
 
   async updateLicense(id: string, updateData: UpdateLicense) {
+    const data = {
+      ...updateData,
+      expiresAt: updateData.expiresAt
+        ? new Date(Number(updateData.expiresAt))
+        : undefined,
+    };
+    // Remove undefined values from the data object
+    const cleanedData = Object.entries(data).reduce((acc, [key, value]) => {
+      if (value !== undefined) {
+        acc[key] = value;
+      }
+      return acc;
+    }, {});
+
     return this.prisma.license.update({
       where: { id },
-      data: {
-        ...updateData,
-        expiresAt: new Date(updateData.expiresAt),
-      },
+      data: cleanedData,
     });
   }
 

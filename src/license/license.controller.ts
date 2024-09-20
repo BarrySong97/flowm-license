@@ -8,6 +8,7 @@ import {
   Query,
   Put,
   Delete,
+  Header,
 } from '@nestjs/common';
 import { LicenseService } from './license.service';
 import { AuthGuard } from '@nestjs/passport'; // 假设你使用 Passport 进行身份验证
@@ -37,7 +38,6 @@ export class LicenseController {
   }
 
   // 停用许可证
-  @UseGuards(AuthGuard('jwt'))
   @Post('deactivate')
   async deactivate(@Body() deactivateData: License) {
     return this.licenseService.deactivate(deactivateData);
@@ -45,6 +45,9 @@ export class LicenseController {
 
   @Get()
   @UseGuards(AuthGuard('jwt'))
+  @Header('Cache-Control', 'no-cache, no-store, must-revalidate')
+  @Header('Pragma', 'no-cache')
+  @Header('Expires', '0')
   async getAllLicenses(@Query() query: LicenseQuery) {
     return this.licenseService.getAllLicenses(query);
   }

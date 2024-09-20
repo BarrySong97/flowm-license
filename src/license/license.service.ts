@@ -26,18 +26,15 @@ export class LicenseService {
     return this.licenseDao.activate(
       activateData.licenseKey,
       activateData.macId,
+      activateData.email,
     );
   }
   async deactivate(deactivateData: License) {
     return this.licenseDao.deactivate(
       deactivateData.licenseKey,
       deactivateData.macId,
+      deactivateData.email,
     );
-  }
-
-  // 通过邮箱检索许可证
-  async retrieveByEmail(email: string) {
-    return this.licenseDao.retrieveByEmail(email);
   }
 
   async getAllLicenses(query: LicenseQuery) {
