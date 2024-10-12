@@ -52,6 +52,16 @@ export class LicenseController {
     return this.licenseService.getAllLicenses(query);
   }
 
+  @Get('/status-card')
+  @UseGuards(AuthGuard('jwt'))
+  async getStatusCard() {
+    return this.licenseService.getStatusCard();
+  }
+  @Get('/trend')
+  @UseGuards(AuthGuard('jwt'))
+  async getTrend() {
+    return this.licenseService.getTrend();
+  }
   @Get(':id')
   @UseGuards(AuthGuard('jwt'))
   async getLicense(@Param('id') id: string) {

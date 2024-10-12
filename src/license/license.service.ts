@@ -10,6 +10,15 @@ import {
 @Injectable()
 export class LicenseService {
   constructor(private licenseDao: LicenseDao) {}
+  // trend
+  async getTrend() {
+    return this.licenseDao.getTrend();
+  }
+
+  // status card
+  async getStatusCard() {
+    return this.licenseDao.getStatusCard();
+  }
 
   // 验证许可证
   async verify(verifyData: License) {

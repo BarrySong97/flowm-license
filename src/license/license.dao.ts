@@ -18,6 +18,37 @@ import * as dayjs from 'dayjs';
 @Injectable()
 export class LicenseDao {
   constructor(private prisma: PrismaService) {}
+  // trend
+  async getTrend() {
+    const licenses = await this.prisma.license.findMany({
+      orderBy: { createdAt: 'desc' },
+    });
+    // 计算每天的许可证数量
+    const dailyCounts = licenses.reduce((acc, license) => {
+      const date = dayjs(license.createdAt).format('YYYY-MM-DD');
+      acc[date] = (acc[date] || 0) + 1;
+      return acc;
+    }, {});
+
+    // 转换为数组格式，按日期排序
+    const trend = Object.entries(dailyCounts)
+      .map(([date, count]) => ({ date, count }))
+      .sort((a, b) => dayjs(a.date).diff(dayjs(b.date)));
+
+    return trend as { date: string; count: number }[];
+  }
+
+  // status card
+  async getStatusCard() {
+    const total = await this.prisma.license.count();
+    const active = await this.prisma.license.count({
+      where: { status: 'ACTIVE' },
+    });
+    const inactive = await this.prisma.license.count({
+      where: { status: 'INACTIVE' },
+    });
+    return { total, active, inactive };
+  }
 
   async verify(licenseKey: string, macId: string): Promise<License | null> {
     const license = await this.prisma.license.findUnique({
@@ -168,6 +199,9 @@ export class LicenseDao {
       skip: (Number(page) - 1) * Number(pageSize),
       take: Number(pageSize),
       where,
+      orderBy: {
+        createdAt: 'desc',
+      },
     });
     // Calculate if licenses are expired and update status if necessary
 
