@@ -52,7 +52,7 @@ export class LicenseDao {
 
   async verify(licenseKey: string, macId: string): Promise<License | null> {
     const license = await this.prisma.license.findUnique({
-      where: { key: licenseKey, macIds: { has: macId } },
+      where: { key: licenseKey },
     });
 
     if (!license) {
@@ -121,11 +121,7 @@ export class LicenseDao {
     // 检查 macId 是否已存在
     const canActivate =
       currentLicense &&
-      !currentLicense.macIds.includes(macId) &&
       currentLicense.activatedDevices < currentLicense.maxDevices;
-    if (currentLicense.macIds.includes(macId)) {
-      return currentLicense;
-    }
 
     if (currentLicense.activatedDevices >= currentLicense.maxDevices) {
       throw new BadRequestException(
@@ -138,7 +134,6 @@ export class LicenseDao {
         where: { key: licenseKey },
         data: {
           status: 'ACTIVE',
-          macIds: { push: macId },
           activatedDevices: { increment: 1 },
         },
       });
@@ -164,22 +159,18 @@ export class LicenseDao {
       throw new ForbiddenException('License expired');
     }
 
-    if (
-      currentLicense &&
-      currentLicense.macIds.includes(macId) &&
-      currentLicense.macIds.length > 0
-    ) {
-      const macIds = currentLicense.macIds.filter((id) => id !== macId);
-      return this.prisma.license.update({
-        where: { key: licenseKey },
-        data: {
-          status: 'INACTIVE',
-          macIds: { set: macIds },
-          activatedDevices: { decrement: 1 },
-        },
-      });
-    } else {
-      return currentLicense;
+    if (currentLicense) {
+      if (currentLicense.activatedDevices > 0) {
+        return this.prisma.license.update({
+          where: { key: licenseKey },
+          data: {
+            status: 'INACTIVE',
+            activatedDevices: { decrement: 1 },
+          },
+        });
+      } else {
+        throw new BadRequestException('No device activated');
+      }
     }
   }
 
@@ -230,9 +221,6 @@ export class LicenseDao {
   async updateLicense(id: string, updateData: UpdateLicense) {
     const data = {
       ...updateData,
-      expiresAt: updateData.expiresAt
-        ? new Date(Number(updateData.expiresAt))
-        : undefined,
     };
     // Remove undefined values from the data object
     const cleanedData = Object.entries(data).reduce((acc, [key, value]) => {
