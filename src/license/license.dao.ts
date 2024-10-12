@@ -164,7 +164,8 @@ export class LicenseDao {
         return this.prisma.license.update({
           where: { key: licenseKey },
           data: {
-            status: 'INACTIVE',
+            status:
+              currentLicense.activatedDevices === 1 ? 'INACTIVE' : 'ACTIVE',
             activatedDevices: { decrement: 1 },
           },
         });
